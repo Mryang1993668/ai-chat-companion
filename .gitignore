@@ -1,0 +1,41 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+.virtualenv/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 环境变量（重要！不要上传你的 API Key）
+.env
+*.env
+.env.local
+.env.*.local
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 本地数据（如果你想保留会话记录在本地）
+resource/data/
+!resource/data/.gitkeep
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志文件
+*.log

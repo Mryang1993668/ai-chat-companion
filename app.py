@@ -3,11 +3,12 @@ from datetime import datetime
 import json
 import os
 import glob
+import time
 from http import HTTPStatus
 from dashscope import Application
 
 #定义删除会话的操作
-def handle_click(current_time):
+def handle_session(current_time):
     # 本地.json文件存在，则删除会话信息。清空session_state
     if os.path.exists(f"resource/data/{current_time}.json"):
         os.remove(f"resource/data/{current_time}.json")
@@ -15,7 +16,7 @@ def handle_click(current_time):
         st.session_state.messages = []
 
 # 加载会话信息
-def load_click(current_time):
+def load_session(current_time):
     # 加载会话信息。保存信息到session_state
     if os.path.exists(f"resource/data/{current_time}.json"):
         with open(f"resource/data/{current_time}.json", 'r', encoding='utf-8') as current_file:
@@ -89,16 +90,23 @@ if prompt:
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()  # 创建占位符，用于实时更新
-        #思考时间
-        total = 0
+        #记录开始时间
+        start_time = time.time()
         # 1. 立即显示"正在输入..."提示
         message_placeholder.markdown(f"⏳ 正在思考...")
         full_response = ""  # 用于拼接完整文本
         has_received = False
+        last_update_time = time.time()
         try:
             #遍历消息
             for chunk in responses:
-                total += 1
+                current_time = time.time()
+                # 每秒更新一次显示（避免过度刷新）
+                if int(current_time - start_time) > int(last_update_time - start_time):
+                    elapsed_seconds = int(current_time - start_time)
+                    if not has_received:
+                        message_placeholder.markdown(f"⏳ 正在思考 {elapsed_seconds} 秒...")
+                    last_update_time = current_time
                 # 请求成功状态码200，返回数据
                 if chunk.status_code == HTTPStatus.OK:
                     data = chunk.output.text
@@ -110,14 +118,19 @@ if prompt:
                         full_response  += data
                         # 实时更新显示（加光标效果）
                         message_placeholder.markdown(full_response + "▌")
-                    else:
-                        message_placeholder.markdown(f"⏳ 正在思考{total}秒...")
         except Exception as e:
             error_msg = f"调用异常: {str(e)}"
             message_placeholder.markdown(f"❌ {error_msg}")
             full_response = error_msg
+
         # 流式结束后，去掉光标，显示完整文本
-        message_placeholder.markdown(full_response)
+        final_elapsed = int(time.time() - start_time)
+        if final_elapsed > 0 and not has_received:
+            # 如果没有收到任何数据，显示最终等待时间
+            message_placeholder.markdown(f"⏳ 等待结束 ({final_elapsed} 秒)\n\n{full_response}")
+        else:
+            message_placeholder.markdown(full_response)
+
         #保存大模型返回的信息
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
@@ -144,7 +157,7 @@ with st.sidebar:
                 # 需要展示单个会话信息
                 st.button(
                     data["current_time"],
-                    on_click=load_click,
+                    on_click=load_session,
                     width = "stretch",
                     key=data["current_time"],
                     args=(data["current_time"],)
@@ -155,6 +168,6 @@ with st.sidebar:
                     icon="❌️",
                     key=f"❌️{data["current_time"]}",
                     width="stretch",
-                    on_click=handle_click,
+                    on_click=handle_session,
                     args=(data["current_time"],)
                 )

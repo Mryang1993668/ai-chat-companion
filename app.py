@@ -6,7 +6,12 @@ import glob
 import time
 from http import HTTPStatus
 from dashscope import Application
-
+from dotenv import load_dotenv
+# 获取当前文件所在目录的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(current_dir, '.env')
+# 强制加载
+load_dotenv(dotenv_path=env_path, override=True)
 #定义删除会话的操作
 def handle_session(current_time):
     # 本地.json文件存在，则删除会话信息。清空session_state
@@ -100,11 +105,16 @@ if prompt:
         try:
             #遍历消息
             for chunk in responses:
+                #无效KEY访问。
+                if chunk.status_code == HTTPStatus.UNAUTHORIZED:
+                    full_response = "API_KEY未授权，检查配置信息"
+                    break
                 current_time = time.time()
                 # 每秒更新一次显示（避免过度刷新）
                 if int(current_time - start_time) > int(last_update_time - start_time):
                     elapsed_seconds = int(current_time - start_time)
                     if not has_received:
+
                         message_placeholder.markdown(f"⏳ 正在思考 {elapsed_seconds} 秒...")
                     last_update_time = current_time
                 # 请求成功状态码200，返回数据
